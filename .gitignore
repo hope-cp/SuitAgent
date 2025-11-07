@@ -54,19 +54,11 @@ temp/
 # Input/output files (可能包含敏感信息)
 input/*
 !input/.gitkeep
-output/cases/*/
-!output/cases/.gitkeep
-!output/cases/README.md
-!output/cases/[案件编号].md
-!output/cases/[案件编号].yaml
-!output/cases/案件示例/
+output/cases/
+!output/.gitkeep
 
 # Keep template files
-!output/cases/案件001-*/
-
-# Exclude all case files with real data
-output/cases/*/案件*/ 2>/dev/null || true
-output/cases/*/*案例*/ 2>/dev/null || true
+!output/cases/案件示例/
 
 # 排除项目文档和状态文件（已在本地保留）
 docs/*/
