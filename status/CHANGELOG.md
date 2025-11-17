@@ -1,7 +1,101 @@
 # 变更记录
 
-> Last updated: 2025-11-11
+> Last updated: 2025-11-14
 > 所有对用户或其他协作者有影响的变更都会在此记录。使用 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
+
+---
+
+## [v0.3.0] - 2025-11-14
+
+### 🚀 新增功能 (Added)
+- **🆕 委托文件生成系统整合**
+  - 成功整合独立的委托文件生成系统到SuitAgent工作流
+  - 新增 `.claude/tools/placeholder_mapper.py` - 字段映射工具 (348行)
+  - 新增 `.claude/tools/DocxProcessor.py` - Word文档处理引擎 (365行)
+  - 新增 `.claude/tools/docx_tools.py` - 便捷调用接口 (304行)
+  - 支持14个核心字段的自动映射
+  - 支持公司和个人两种委托类型
+
+- **🆕 委托确定工作流**
+  - 新增完整"委托确定"场景工作流
+  - 支持5个核心委托文件自动生成
+  - 集成DocAnalyzer → Writer → Summarizer → Reporter自动化流程
+  - 可通过自然语言触发："我需要制作委托材料"
+
+- **🆕 模板资源库**
+  - 新增 `.claude/templates/公司委托模板/` - 9个Word模板
+  - 新增 `.claude/templates/个人委托模板/` - 8个Word模板
+  - 支持自动模板选择和批量生成
+  - 保持Word文档原始格式（字体、颜色、对齐等）
+
+- **🆕 集成测试套件**
+  - 新增 `tests/test_integration.py` - 完整测试套件 (452行)
+  - 覆盖字段映射、YAML验证、模板发现、批量生成等场景
+  - 提供颜色输出和详细测试报告
+
+### 🔧 改进 (Changed)
+- **Writer Agent扩展**
+  - 更新 `.claude/agents/Writer.md`，添加委托文件生成功能
+  - 新增15种文书类型（包含Word格式委托文件）
+  - 集成自动工作流触发机制
+  - 支持Markdown和Word双格式输出
+
+- **目录结构优化**
+  - 精简 `.claude/memory/` 目录，减少上下文污染60%
+  - 将可引用文件移至 `.claude/tools/`、`.claude/templates/`、`docs/`、`output/`
+  - memory目录仅保留必要文件：integration/、workflows/
+  - 上下文大小从~500KB减少到~200KB
+
+- **文档体系增强**
+  - 新增 `docs/委托文件生成系统整合报告.md` - 完整整合报告 (11KB)
+  - 新增 `.claude/memory/integration/字段对照表.md` - 字段映射规范
+  - 新增 `.claude/memory/integration/工具使用指南.md` - API文档
+  - 新增 `.claude/memory/integration/委托确定工作流.md` - 工作流说明
+  - 新增 `.claude/memory/integration/目录结构优化.md` - 优化说明
+  - 新增 `.claude/memory/integration/整合工作总结.md` - 工作总结
+
+### 🔒 性能优化 (Optimized)
+- **上下文优化**
+  - memory目录文件减少60%（从~50个到~20个）
+  - 上下文大小减少60%（从~500KB到~200KB）
+  - 响应速度显著提升
+  - 成本显著降低
+
+- **文件组织优化**
+  - 按功能分类存放文件：tools/（工具）、templates/（模板）、docs/（文档）
+  - 通过路径引用使用，无需加载到上下文
+  - 统一的模板管理 `.claude/templates/`
+  - 清晰的目录层次结构
+
+### 🐛 修复 (Fixed)
+- 修复了工具文件相对导入问题，使用 `.claude/tools/` 内部导入
+- 更新了所有文档中的路径引用，从 `.claude/memory/` 迁移到新位置
+- 修复了批量生成函数的模板目录选择逻辑
+
+### 📋 技术细节 (Technical)
+- **核心技术**: 基于 `word_template_processor.py` 的字符级精确替换
+- **算法优化**: Run级别操作保持Word格式，反向迭代避免索引偏移
+- **字段映射**: 14个核心字段（委托人、律师、案件、日期信息）
+- **模板类型**: 支持公司委托（9种文件）和个人委托（8种文件）
+- **输出格式**: Word(.docx) + Markdown(.md) 双格式支持
+- **工作流步骤**: 4步自动化（客户确认 → 委托文件 → 清单摘要 → 完整报告）
+
+### 📖 文档更新 (Documentation)
+- `docs/委托文件生成系统整合报告.md` - v1.0，完整整合报告
+- `status/CHANGELOG.md` - 记录 v0.3.0 所有变更
+- `status/JOURNAL.md` - 添加整合工作日志
+- `status/TASKS.md` - 更新任务完成状态
+- `CLAUDE.md` - 更新场景7说明，新增Word格式委托文件特性
+
+### ⚠️ 破坏性变更 (Breaking Changes)
+- **工具路径变更**: 原 `tools/*.py` 移至 `.claude/tools/*.py`
+- **模板路径变更**: 原 `.claude/memory/公司委托模板/` 移至 `.claude/templates/公司委托模板/`
+- **导入路径变更**: 工具内部导入使用相对路径 `from .xxx import xxx`
+
+### 📌 迁移指南 (Migration)
+- 更新所有引用 `tools/*.py` 的代码为 `.claude/tools/*.py`
+- 更新模板路径从 `.claude/memory/委托模板/` 到 `.claude/templates/委托模板/`
+- 安装新依赖: `pip install python-docx pyyaml`
 
 ---
 

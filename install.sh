@@ -23,6 +23,8 @@ NC='\033[0m' # No Color
 # 配置变量
 SCRIPT_VERSION="1.0.0"
 NODE_MIN_VERSION="18.0.0"
+PYTHON_MIN_VERSION="3.8.0"
+PIP_MIN_VERSION="21.0.0"
 
 # 打印函数
 print_header() {
@@ -192,6 +194,272 @@ install_nodejs() {
         print_error "不支持的操作系统: $OS"
         exit 1
     fi
+}
+
+# 检查 Python 版本
+check_python() {
+    if command_exists python3; then
+        PYTHON_VERSION=$(python3 --version | cut -d' ' -f2)
+        REQUIRED_VERSION=$PYTHON_MIN_VERSION
+
+        if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$PYTHON_VERSION" | sort -V | head -n1)" = "$REQUIRED_VERSION" ]; then
+            print_success "Python3 已安装 (版本: $PYTHON_VERSION)"
+            return 0
+        else
+            print_warning "Python3 版本过低 (当前: $PYTHON_VERSION, 需要: >=$PYTHON_MIN_VERSION)"
+            return 1
+        fi
+    else
+        print_info "Python3 未安装"
+        return 1
+    fi
+}
+
+# 检查 pip 是否可用
+check_pip() {
+    if command_exists pip3; then
+        PIP_VERSION=$(pip3 --version | cut -d' ' -f2)
+        REQUIRED_VERSION=$PIP_MIN_VERSION
+
+        if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$PIP_VERSION" | sort -V | head -n1)" = "$REQUIRED_VERSION" ]; then
+            print_success "pip 已安装 (版本: $PIP_VERSION)"
+            return 0
+        else
+            print_warning "pip 版本过低 (当前: $PIP_VERSION, 需要: >=$PIP_MIN_VERSION)"
+            return 1
+        fi
+    else
+        print_info "pip 未安装"
+        return 1
+    fi
+}
+
+# 安装系统依赖 (macOS)
+install_system_deps_macos() {
+    print_step "安装系统依赖 (macOS)..."
+
+    if ! command_exists brew; then
+        print_warning "需要先安装 Homebrew"
+        print_info "正在安装 Homebrew..."
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+        # 配置 Homebrew (Apple Silicon Mac)
+        if [[ $(uname -m) == "arm64" ]]; then
+            echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+            eval "$(/opt/homebrew/bin/brew shellenv)"
+        fi
+    fi
+
+    print_info "正在安装 Tesseract OCR, Poppler, Pandoc, LibreOffice..."
+    brew install tesseract poppler pandoc
+    brew install --cask libreoffice
+
+    print_success "系统依赖安装完成 (macOS)"
+}
+
+# 安装系统依赖 (Linux)
+install_system_deps_linux() {
+    print_step "安装系统依赖 (Linux)..."
+
+    if command_exists apt-get; then
+        # Ubuntu/Debian
+        print_info "更新软件包列表..."
+        sudo apt-get update -qq
+
+        print_info "安装 Tesseract OCR, Poppler, Pandoc, LibreOffice..."
+        sudo apt-get install -y tesseract-ocr poppler-utils pandoc libreoffice
+
+    elif command_exists yum; then
+        # CentOS/RHEL
+        print_info "安装 Tesseract OCR 和 Poppler..."
+        sudo yum install -y tesseract poppler-utils
+        print_warning "Pandoc 和 LibreOffice 可能需要手动安装"
+
+    elif command_exists dnf;
+    then
+        # Fedora
+        print_info "安装 Tesseract OCR 和 Poppler..."
+        sudo dnf install -y tesseract poppler-utils
+        print_warning "Pandoc 和 LibreOffice 可能需要手动安装"
+
+    else
+        print_warning "不支持的 Linux 发行版，请手动安装以下软件包："
+        echo "  - tesseract-ocr (Tesseract OCR)"
+        echo "  - poppler-utils (PDF转图片工具)"
+        echo "  - pandoc (文档转换)"
+        echo "  - libreoffice (Office文档处理)"
+        return 1
+    fi
+
+    print_success "系统依赖安装完成 (Linux)"
+}
+
+# 安装系统依赖 (Windows)
+install_system_deps_windows() {
+    print_step "安装系统依赖 (Windows)..."
+
+    print_warning "Windows 用户请手动安装以下软件："
+    echo
+    echo -e "  ${CYAN}1. Tesseract OCR (OCR文字识别):${NC}"
+    echo -e "     ${YELLOW}下载地址:${NC} ${BLUE}https://github.com/UB-Mannheim/tesseract/wiki${NC}"
+    echo -e "     ${YELLOW}安装步骤:${NC}"
+    echo -e "       - 下载并安装 Tesseract-OCR installer"
+    echo -e "       - 记住安装路径 (通常为 C:\\Program Files\\Tesseract-OCR)"
+    echo -e "       - 添加到系统 PATH 环境变量"
+    echo
+    echo -e "  ${CYAN}2. Poppler (PDF处理):${NC}"
+    echo -e "     ${YELLOW}下载地址:${NC} ${BLUE}https://blog.alivate.com.au/install-poppler-windows/${NC}"
+    echo -e "     ${YELLOW}安装步骤:${NC}"
+    echo -e "       - 下载 poppler for Windows"
+    echo -e "       - 解压到 C:\\poppler-xx\\"
+    echo -e "       - 将 C:\\poppler-xx\\bin 添加到 PATH 环境变量"
+    echo
+    echo -e "  ${CYAN}3. Pandoc (文档转换):${NC}"
+    echo -e "     ${YELLOW}下载地址:${NC} ${BLUE}https://pandoc.org/installing.html${NC}"
+    echo -e "     ${YELLOW}安装步骤:${NC}"
+    echo -e "       - 下载 Windows installer"
+    echo -e "       - 运行安装程序"
+    echo
+    echo -e "  ${CYAN}4. LibreOffice (Office文档处理):${NC}"
+    echo -e "     ${YELLOW}下载地址:${NC} ${BLUE}https://www.libreoffice.org/download/${NC}"
+    echo -e "     ${YELLOW}安装步骤:${NC}"
+    echo -e "       - 下载 Windows 版本"
+    echo -e "       - 运行安装程序"
+    echo
+    echo -e "  ${CYAN}注意:${NC} 安装完成后需要重启终端使 PATH 生效"
+
+    print_question "是否已完成系统依赖安装？ (Y/n): "
+    read -r deps_installed
+
+    if [[ ! "$deps_installed" =~ ^[Nn]$ ]]; then
+        return 0
+    else
+        print_warning "请先安装系统依赖，然后重新运行此脚本"
+        return 1
+    fi
+}
+
+# 安装系统依赖
+install_system_deps() {
+    OS=$(detect_os)
+
+    if [[ "$OS" == "macos" ]]; then
+        install_system_deps_macos
+    elif [[ "$OS" == "linux" || "$OS" == "wsl" ]]; then
+        install_system_deps_linux
+    elif [[ "$OS" == "windows" ]]; then
+        install_system_deps_windows
+    else
+        print_warning "不支持的操作系统: $OS"
+        print_info "请手动安装以下软件包："
+        echo "  - tesseract-ocr (Tesseract OCR)"
+        echo "  - poppler-utils (PDF转图片工具)"
+        return 1
+    fi
+}
+
+# 安装 Python 依赖
+install_python_deps() {
+    print_step "安装 Python 依赖包..."
+
+    if [ ! -f "requirements.txt" ]; then
+        print_error "requirements.txt 文件不存在"
+        return 1
+    fi
+
+    print_info "正在安装 Python 依赖包 (这可能需要几分钟)..."
+    print_info "安装的包: pypdf, python-docx, python-pptx, openpyxl, Pillow, pandas, PyYAML, 等"
+
+    # 升级 pip
+    print_info "升级 pip..."
+    pip3 install --upgrade pip --quiet
+
+    # 安装依赖
+    print_info "安装 Python 依赖包..."
+    if pip3 install -r requirements.txt; then
+        print_success "Python 依赖包安装完成"
+        return 0
+    else
+        print_error "Python 依赖包安装失败"
+        print_info "请检查网络连接或尝试手动安装: pip3 install -r requirements.txt"
+        return 1
+    fi
+}
+
+# 验证 Python 依赖
+verify_python_deps() {
+    print_step "验证 Python 依赖..."
+
+    local errors=0
+
+    # 测试关键包
+    print_info "测试关键包导入..."
+
+    if python3 -c "import pypdf; print('  ✓ pypdf')" 2>/dev/null; then
+        print_success "pypdf 验证通过"
+    else
+        print_error "pypdf 验证失败"
+        ((errors++))
+    fi
+
+    if python3 -c "import docx; print('  ✓ python-docx')" 2>/dev/null; then
+        print_success "python-docx 验证通过"
+    else
+        print_error "python-docx 验证失败"
+        ((errors++))
+    fi
+
+    if python3 -c "import pptx; print('  ✓ python-pptx')" 2>/dev/null; then
+        print_success "python-pptx 验证通过"
+    else
+        print_error "python-pptx 验证失败"
+        ((errors++))
+    fi
+
+    if python3 -c "import openpyxl; print('  ✓ openpyxl')" 2>/dev/null; then
+        print_success "openpyxl 验证通过"
+    else
+        print_error "openpyxl 验证失败"
+        ((errors++))
+    fi
+
+    if python3 -c "from PIL import Image; print('  ✓ Pillow')" 2>/dev/null; then
+        print_success "Pillow 验证通过"
+    else
+        print_error "Pillow 验证失败"
+        ((errors++))
+    fi
+
+    if python3 -c "import pandas; print('  ✓ pandas')" 2>/dev/null; then
+        print_success "pandas 验证通过"
+    else
+        print_error "pandas 验证失败"
+        ((errors++))
+    fi
+
+    if python3 -c "import yaml; print('  ✓ PyYAML')" 2>/dev/null; then
+        print_success "PyYAML 验证通过"
+    else
+        print_error "PyYAML 验证失败"
+        ((errors++))
+    fi
+
+    # 测试系统依赖
+    print_info "测试系统依赖..."
+
+    if command_exists tesseract; then
+        print_success "Tesseract OCR 验证通过"
+    else
+        print_warning "Tesseract OCR 未找到，部分功能可能受限"
+    fi
+
+    if command_exists pdftoppm 2>/dev/null || command_exists pdfinfo 2>/dev/null; then
+        print_success "Poppler 验证通过"
+    else
+        print_warning "Poppler 未找到，部分功能可能受限"
+    fi
+
+    return $errors
 }
 
 # 安装 Claude Code CLI
@@ -519,6 +787,30 @@ verify_installation() {
         ((errors++))
     fi
 
+    # 检查 Python3
+    if check_python; then
+        print_success "Python3 验证通过"
+    else
+        print_error "Python3 验证失败"
+        ((errors++))
+    fi
+
+    # 检查 pip
+    if check_pip; then
+        print_success "pip 验证通过"
+    else
+        print_error "pip 验证失败"
+        ((errors++))
+    fi
+
+    # 检查 Python 依赖包
+    if verify_python_deps; then
+        print_success "Python 依赖包验证通过"
+    else
+        print_error "Python 依赖包验证失败"
+        ((errors++))
+    fi
+
     # 检查 Claude Code
     if command_exists claude; then
         print_success "Claude Code CLI 验证通过"
@@ -557,17 +849,24 @@ show_startup_guide() {
         echo -e "     (在 Zed 中按 ${PURPLE}Cmd + \`${NC} 打开终端)"
     fi
     echo
-    echo -e "  ${CYAN}2.${NC} 上传法律文档或描述需求，例如:"
+    echo -e "  ${CYAN}2.${NC} 系统支持以下功能:"
+    echo -e "     ${GREEN}✓${NC} PDF 文档处理与 OCR 识别"
+    echo -e "     ${GREEN}✓${NC} Word/Excel/PPT 文档分析"
+    echo -e "     ${GREEN}✓${NC} Markdown 与 Word 互转"
+    echo -e "     ${GREEN}✓${NC} 自动化法律文书生成"
+    echo
+    echo -e "  ${CYAN}3.${NC} 上传法律文档或描述需求，例如:"
     echo -e "     ${YELLOW}• "我收到起诉状，需要应诉"${NC}"
     echo -e "     ${YELLOW}• "有新证据需要质证"${NC}"
     echo -e "     ${YELLOW}• "需要起草答辩状"${NC}"
     echo
-    echo -e "  ${CYAN}3.${NC} 系统会自动执行分析并生成文书"
+    echo -e "  ${CYAN}4.${NC} 系统会自动执行分析并生成文书"
     echo
     echo -e "${WHITE}更多信息:${NC}"
     echo -e "  • 详细文档: ${BLUE}README.md${NC}"
     echo -e "  • 安装指南: ${BLUE}INSTALL.md${NC}"
     echo -e "  • 快速开始: ${BLUE}QUICKSTART.md${NC}"
+    echo -e "  • 依赖列表: ${BLUE}requirements.txt${NC}"
     echo -e "  • Claude Code: ${BLUE}https://docs.anthropic.com/claude-code${NC}"
     echo
 }
@@ -578,10 +877,12 @@ main() {
 
     echo -e "${WHITE}欢迎使用 SuitAgent 自动化安装向导！${NC}"
     echo -e "\n${WHITE}本向导将帮助您:${NC}"
-    echo -e "  ${CYAN}1.${NC} 检查并安装必要的依赖 (Node.js, npm)"
-    echo -e "  ${CYAN}2.${NC} 安装 Claude Code CLI"
-    echo -e "  ${CYAN}3.${NC} 选择并配置 AI 模型供应商"
-    echo -e "  ${CYAN}4.${NC} 验证安装结果"
+    echo -e "  ${CYAN}1.${NC} 检查并安装必要的依赖 (Node.js, Python3, pip)"
+    echo -e "  ${CYAN}2.${NC} 安装系统依赖 (Tesseract OCR, Poppler)"
+    echo -e "  ${CYAN}3.${NC} 安装 Python 依赖包"
+    echo -e "  ${CYAN}4.${NC} 安装 Claude Code CLI"
+    echo -e "  ${CYAN}5.${NC} 选择并配置 AI 模型供应商"
+    echo -e "  ${CYAN}6.${NC} 验证安装结果"
     echo
 
     print_question "是否开始安装? (Y/n): "
@@ -611,6 +912,53 @@ main() {
             exit 1
         fi
     fi
+
+    # 检查并安装 Python3 和 pip
+    if ! check_python; then
+        print_info "Python3 未安装或版本过低"
+        print_warning "请先安装 Python3 (>= $PYTHON_MIN_VERSION)"
+        print_info "推荐安装方式:"
+        echo -e "  ${CYAN}macOS:${NC} ${YELLOW}brew install python3${NC}"
+        echo -e "  ${CYAN}Ubuntu/Debian:${NC} ${YELLOW}sudo apt-get install python3 python3-pip python3-venv${NC}"
+        echo -e "  ${CYAN}Windows:${NC} ${YELLOW}从 https://python.org 下载安装${NC}"
+        print_warning "安装 Python3 后，请重新运行此脚本"
+        exit 1
+    fi
+
+    # 检查 pip
+    if ! check_pip; then
+        print_info "正在安装 pip..."
+        python3 -m ensurepip --upgrade
+        if ! check_pip; then
+            print_error "pip 安装失败"
+            print_info "请手动安装: sudo apt-get install python3-pip (Ubuntu/Debian) 或 brew install python3 (macOS)"
+            exit 1
+        fi
+    fi
+
+    # 安装系统依赖 (Tesseract OCR, Poppler, Pandoc, LibreOffice)
+    print_step "安装系统依赖..."
+    if install_system_deps; then
+        print_success "系统依赖安装完成"
+    else
+        print_warning "系统依赖安装可能不完整，部分功能可能受限"
+    fi
+
+    # 安装 Python 依赖包
+    if install_python_deps; then
+        print_success "Python 依赖包安装完成"
+    else
+        print_error "Python 依赖包安装失败"
+        exit 1
+    fi
+
+    # 安装 NPM 全局包 (pptxgenjs, markitdown, sharp)
+    print_step "安装 NPM 全局包..."
+    print_info "正在安装: pptxgenjs, markitdown, sharp"
+    npm install -g pptxgenjs markitdown sharp 2>/dev/null || {
+        print_warning "部分 NPM 包安装可能失败，但不影响核心功能"
+    }
+    print_success "NPM 全局包安装完成"
 
     # 安装 Claude Code CLI
     install_claude_code

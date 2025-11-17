@@ -1,9 +1,3 @@
----
-name: 2word
-description: 将Markdown文档转换为Word格式，支持多种个性化格式配置
-allowed-tools: ["Read", "Write", "Edit", "Bash"]
----
-
 # 2word - Markdown转Word工具
 
 将Markdown文档转换为Word格式（docx），支持自定义格式配置。
